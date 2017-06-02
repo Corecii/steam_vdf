@@ -1,0 +1,6 @@
+[package]
+name = "steam_vdf"
+version = "0.1.0"
+authors = ["Corecii Cyr <corecii@corecii.com>"]
+
+[dependencies]

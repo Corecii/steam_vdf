@@ -1,3 +1,69 @@
+//! `steam_vdf` is used to read certain vdf files that follow the format of `shortcuts.vdf`
+//!
+//! In normal use you will only be using `read_data`, `write_data` and the `ValveData` enum.
+//!
+//! # Examples
+//! Read `shortcuts.vdf` file for a certain user, print out its entries, their properties,
+//! remove the last entry, and write the new `shortcuts.vdf` back.
+//!
+//! ```
+//! extern crate steam_vdf;
+//!
+//! use std::io::Write;
+//! use std::fs::OpenOptions;
+//! use std::path::Path;
+//! use std::ffi::OsString;
+//!
+//! let shortcuts_path = Path::new("C:\\Program Files (x86)\\Steam\\userdata\\00000000\\config\\shortcuts.vdf");
+//! let mut file = OpenOptions::new().read(true).open(shortcuts_path).expect("Could not open file for reading");
+//! match steam_vdf::read_data(&mut file) {
+//!     Err(err) => println!("Error reading file: {:?}", err),
+//!     Ok(data) => match data {
+//!         None => println!("File was empty, or it began with a data type not recognized."),
+//!         Some(mut base_valve_data) => {
+//!             match &mut base_valve_data {
+//!                 &mut steam_vdf::ValveData::List(ref base_name, ref base_contents) => {
+//!                     assert_eq!(*base_name, OsString::from("shortcuts"));
+//!                     for shortcut in base_contents.iter() {
+//!                         if let &steam_vdf::ValveData::List(ref shortcut_name, ref shortcut_contents) = shortcut {
+//!                             println!("Shortcut: {:?}", shortcut_name);
+//!                             for content in shortcut_contents {
+//!                                 match content {
+//!                                     &steam_vdf::ValveData::List(ref prop_name, _) => {
+//!                                         println!("Name: {:?}; Value: [List]", prop_name);
+//!                                     },
+//!                                     &steam_vdf::ValveData::String(ref prop_name, ref prop_content) => {
+//!                                         println!("Name: {:?}; Value: {:?}", prop_name, prop_content);
+//!                                     },
+//!                                     &steam_vdf::ValveData::Bytes4(ref prop_name, ref prop_content) => {
+//!                                         println!("Name: {:?}; Value: {:02X}{:02X}{:02X}{:02X}", prop_name, prop_content[0], prop_content[1], prop_content[2], prop_content[3]);
+//!                                     },
+//!                                     &steam_vdf::ValveData::EndOfList => {
+//!                                         println!("EndOfList");
+//!                                     },
+//!                                 }
+//!                             }
+//!                         }
+//!                     }
+//!                     base_contents.pop();
+//!                 },
+//!                 _ => println!("base data was not a list."),
+//!             }
+//!             let mut file = OpenOptions::new()
+//!                 .read(false)
+//!                 .write(true)
+//!                 .truncate(true)
+//!                 .create(true)
+//!                 .open(shortcuts_path)
+//!                 .expect("Could not open file for writing");
+//!             steam_vdf::write_data(&mut file, &base_valve_data).expect("Could not write data to file");
+//!             // Must manually write a final, extra, closing 0x08 for the file to be valid.
+//!             file.write_all(&[0x08]).expect("Could not write data to file");
+//!         },
+//!     },
+//! };
+//! ```
+
 use std::io;
 use std::io::{Read, Write};
 use std::ffi::{OsString, OsStr};
@@ -11,7 +77,7 @@ pub enum ValveDataType {
 }
 
 /// Represents data in a vdf file.
-/// All data except the list terminator has a property name and peroperty value.
+/// All data except the list terminator has a property name and property value.
 pub enum ValveData {
     /// A list. Begins with `0x00`, ends with `EndOfList`, or `0x08`
     /// Internal format: `0x00` `string name` `list_contents` `EndOfList`
@@ -122,9 +188,11 @@ pub fn write_null_string<T: Write>(output: &mut T, data: &OsStr) -> io::Result<(
 }
 
 /// Writes to the given output the given ValveData.
-/// If it succeeds without errors, it returns `Ok(())`
-/// If it has errors, it returns `Err` with an io error.
+/// * If it succeeds without errors, it returns `Ok(())`
+/// * If it has errors, it returns `Err` with an io error.
+///
 /// This does not write the extra `0x08` at the end of `shortcuts.vdf`. In order to produce a valid file, you will need to write `0x08` when you're done.
+///
 /// Open the file you are working with in a hex editor and check if this will produce proper output. If the output is not proper, it may be discarded, and data may be lost.
 pub fn write_data<T: Write>(output: &mut T, data: &ValveData) -> io::Result<()> {
     output.write_all(&[get_prefix_from_type(data.data_type())])?;

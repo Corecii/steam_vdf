@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `steam_vdf` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, steam_vdf">
+
+    <title>steam_vdf - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'steam_vdf', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>steam_vdf</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/steam_vdf/lib.rs.html#1-218' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p><code>steam_vdf</code> is used to read certain vdf files that follow the format of <code>shortcuts.vdf</code></p>
+
+<p>In normal use you will only be using <code>read_data</code>, <code>write_data</code> and the <code>ValveData</code> enum.</p>
+
+<h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1>
+<p>Read <code>shortcuts.vdf</code> file for a certain user, print out its entries, their properties,
+remove the last entry, and write the new <code>shortcuts.vdf</code> back.</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>steam_vdf</span>;
+
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::<span class='ident'>OpenOptions</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::<span class='ident'>Path</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ffi</span>::<span class='ident'>OsString</span>;
+
+<span class='kw'>let</span> <span class='ident'>shortcuts_path</span> <span class='op'>=</span> <span class='ident'>Path</span>::<span class='ident'>new</span>(<span class='string'>&quot;C:\\Program Files (x86)\\Steam\\userdata\\00000000\\config\\shortcuts.vdf&quot;</span>);
+<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='ident'>OpenOptions</span>::<span class='ident'>new</span>().<span class='ident'>read</span>(<span class='bool-val'>true</span>).<span class='ident'>open</span>(<span class='ident'>shortcuts_path</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Could not open file for reading&quot;</span>);
+<span class='kw'>match</span> <span class='ident'>steam_vdf</span>::<span class='ident'>read_data</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>file</span>) {
+    <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=&gt;</span> <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Error reading file: {:?}&quot;</span>, <span class='ident'>err</span>),
+    <span class='prelude-val'>Ok</span>(<span class='ident'>data</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>data</span> {
+        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;File was empty, or it began with a data type not recognized.&quot;</span>),
+        <span class='prelude-val'>Some</span>(<span class='kw-2'>mut</span> <span class='ident'>base_valve_data</span>) <span class='op'>=&gt;</span> {
+            <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>base_valve_data</span> {
+                <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>List</span>(<span class='kw-2'>ref</span> <span class='ident'>base_name</span>, <span class='kw-2'>ref</span> <span class='ident'>base_contents</span>) <span class='op'>=&gt;</span> {
+                    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='kw-2'>*</span><span class='ident'>base_name</span>, <span class='ident'>OsString</span>::<span class='ident'>from</span>(<span class='string'>&quot;shortcuts&quot;</span>));
+                    <span class='kw'>for</span> <span class='ident'>shortcut</span> <span class='kw'>in</span> <span class='ident'>base_contents</span>.<span class='ident'>iter</span>() {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>List</span>(<span class='kw-2'>ref</span> <span class='ident'>shortcut_name</span>, <span class='kw-2'>ref</span> <span class='ident'>shortcut_contents</span>) <span class='op'>=</span> <span class='ident'>shortcut</span> {
+                            <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Shortcut: {:?}&quot;</span>, <span class='ident'>shortcut_name</span>);
+                            <span class='kw'>for</span> <span class='ident'>content</span> <span class='kw'>in</span> <span class='ident'>shortcut_contents</span> {
+                                <span class='kw'>match</span> <span class='ident'>content</span> {
+                                    <span class='kw-2'>&amp;</span><span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>List</span>(<span class='kw-2'>ref</span> <span class='ident'>prop_name</span>, _) <span class='op'>=&gt;</span> {
+                                        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Name: {:?}; Value: [List]&quot;</span>, <span class='ident'>prop_name</span>);
+                                    },
+                                    <span class='kw-2'>&amp;</span><span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>String</span>(<span class='kw-2'>ref</span> <span class='ident'>prop_name</span>, <span class='kw-2'>ref</span> <span class='ident'>prop_content</span>) <span class='op'>=&gt;</span> {
+                                        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Name: {:?}; Value: {:?}&quot;</span>, <span class='ident'>prop_name</span>, <span class='ident'>prop_content</span>);
+                                    },
+                                    <span class='kw-2'>&amp;</span><span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>Bytes4</span>(<span class='kw-2'>ref</span> <span class='ident'>prop_name</span>, <span class='kw-2'>ref</span> <span class='ident'>prop_content</span>) <span class='op'>=&gt;</span> {
+                                        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Name: {:?}; Value: {:02X}{:02X}{:02X}{:02X}&quot;</span>, <span class='ident'>prop_name</span>, <span class='ident'>prop_content</span>[<span class='number'>0</span>], <span class='ident'>prop_content</span>[<span class='number'>1</span>], <span class='ident'>prop_content</span>[<span class='number'>2</span>], <span class='ident'>prop_content</span>[<span class='number'>3</span>]);
+                                    },
+                                    <span class='kw-2'>&amp;</span><span class='ident'>steam_vdf</span>::<span class='ident'>ValveData</span>::<span class='ident'>EndOfList</span> <span class='op'>=&gt;</span> {
+                                        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;EndOfList&quot;</span>);
+                                    },
+                                }
+                            }
+                        }
+                    }
+                    <span class='ident'>base_contents</span>.<span class='ident'>pop</span>();
+                },
+                _ <span class='op'>=&gt;</span> <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;base data was not a list.&quot;</span>),
+            }
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='ident'>OpenOptions</span>::<span class='ident'>new</span>()
+                .<span class='ident'>read</span>(<span class='bool-val'>false</span>)
+                .<span class='ident'>write</span>(<span class='bool-val'>true</span>)
+                .<span class='ident'>truncate</span>(<span class='bool-val'>true</span>)
+                .<span class='ident'>create</span>(<span class='bool-val'>true</span>)
+                .<span class='ident'>open</span>(<span class='ident'>shortcuts_path</span>)
+                .<span class='ident'>expect</span>(<span class='string'>&quot;Could not open file for writing&quot;</span>);
+            <span class='ident'>steam_vdf</span>::<span class='ident'>write_data</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>file</span>, <span class='kw-2'>&amp;</span><span class='ident'>base_valve_data</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Could not write data to file&quot;</span>);
+            <span class='comment'>// Must manually write a final, extra, closing 0x08 for the file to be valid.</span>
+            <span class='ident'>file</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0x08</span>]).<span class='ident'>expect</span>(<span class='string'>&quot;Could not write data to file&quot;</span>);
+        },
+    },
+};</pre>
+</div><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.ValveData.html'
+                                  title='steam_vdf::ValveData'>ValveData</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents data in a vdf file.
+All data except the list terminator has a property name and property value.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.ValveDataType.html'
+                                  title='steam_vdf::ValveDataType'>ValveDataType</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents a data type in a vdf file without data.</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.get_prefix_from_type.html'
+                                  title='steam_vdf::get_prefix_from_type'>get_prefix_from_type</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the prefix for a specific data type</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.get_type_from_prefix.html'
+                                  title='steam_vdf::get_type_from_prefix'>get_type_from_prefix</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the data type for a specific prefix.
+If the prefix byte is not valid, <code>None</code> is returned.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.read_data.html'
+                                  title='steam_vdf::read_data'>read_data</a></td>
+                           <td class='docblock-short'>
+                                <p>Reads the provided input, and returns a <code>ValveData</code> representing it. Generally, this will be a <code>ValveData::List</code>.
+If the prefix for this data is invalid, then <code>Ok(None)</code> is returned.
+If the prefix is valid and no errors were encountered while reading, then <code>Ok(Some(ValveData))</code> is returned.
+If errors were encountered while reading, then <code>Err</code> is returned with an io error.
+This does not read the <code>0x08</code> at the end of <code>shortcuts.vdf</code>.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.read_null_string.html'
+                                  title='steam_vdf::read_null_string'>read_null_string</a></td>
+                           <td class='docblock-short'>
+                                <p>Reads a String, counting up all characters until it reaches <code>0x00</code> i.e. null.
+Returns an <code>OsString</code>, but internally uses a <code>String</code> and <code>String::from_utf8_lossy</code>.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.write_data.html'
+                                  title='steam_vdf::write_data'>write_data</a></td>
+                           <td class='docblock-short'>
+                                <p>Writes to the given output the given ValveData.
+* If it succeeds without errors, it returns <code>Ok(())</code>
+* If it has errors, it returns <code>Err</code> with an io error.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.write_null_string.html'
+                                  title='steam_vdf::write_null_string'>write_null_string</a></td>
+                           <td class='docblock-short'>
+                                <p>Writes a String, then writes 0x00.
+Takes an <code>OsStr</code>, but internally uses a <code>String</code> and <code>OsStr::to_string_lossy</code>.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "steam_vdf";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

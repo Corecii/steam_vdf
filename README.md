@@ -1,4 +1,4 @@
-# steam_shortcuts_reader
+# steam_vdf
 
 This library reads and writes the shortcuts.vdf file and similarly formatted files.
 

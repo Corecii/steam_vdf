@@ -1,5 +1,7 @@
 # steam_vdf
 
+[Documentation](https://corecii.github.io/steam_vdf/steam_vdf/index.html)
+
 This library reads and writes the shortcuts.vdf file and similarly formatted files.
 
 ## Types
